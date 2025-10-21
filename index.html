@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trip & Conference Manager</title>
+    <link rel="stylesheet" href="styles.css?v=12">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <!-- PDF.js for parsing email PDFs client-side -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js" integrity="sha512-3P+qO4mx8HqSVLw2mYk5zXnlvIT8nNnq8m2d7i7kH0SrdlqN1w9Y7oZtC0u0z0lEJQq0o3p5WQ0+v9v3P6M7QA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <link
+        rel="stylesheet"
+        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+        crossorigin=""
+    />
+    <script
+        src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+        crossorigin=""
+    ></script>
+</head>
+<body>
+    <div class="app-container">
+        <div class="app-header">
+            <h1>🌍 Trip & Conference Manager</h1>
+            <p>Organize your travels, track conference schedules, and never miss an important event</p>
+        </div>
+
+    <!-- Issues Modal -->
+    <div id="issuesModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Flagged Discrepancies</h2>
+                <button class="close-modal" onclick="closeModal('issuesModal')">×</button>
+            </div>
+            <div id="issuesList" style="display:flex; flex-direction:column; gap:10px;"></div>
+            <div style="display:flex; gap:10px; margin-top:12px;">
+                <button class="btn btn-secondary" onclick="closeModal('issuesModal')">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Elements Post Modal -->
+    <div id="elementsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Prepare Elements Post</h2>
+                <button class="close-modal" onclick="closeModal('elementsModal')">×</button>
+            </div>
+            <p style="color:#64748b; margin-bottom:8px;">Review and copy the text below to post into Elements.</p>
+            <textarea id="elementsPostText" style="width:100%; min-height:220px; border:1px solid var(--border); border-radius:8px; padding:10px;"></textarea>
+            <div style="display:flex; gap:10px; margin-top:12px;">
+                <button class="btn btn-primary" onclick="copyElementsPost()">Copy to Clipboard</button>
+                <button class="btn btn-secondary" onclick="closeModal('elementsModal')">Close</button>
+            </div>
+        </div>
+    </div>
+
+        <div class="trips-bar">
+            <h3>My Trips</h3>
+            <div id="tripsList" class="trips-bar-list"></div>
+            <div class="trips-bar-actions">
+                <button class="btn btn-primary" onclick="showNewTripModal()">+ New Trip</button>
+                <button class="btn btn-secondary" onclick="loadSampleTrip()">📋 Load Sample Trip</button>
+            </div>
+        </div>
+
+        <div class="main-layout">
+            <div class="sidebar">
+
+                <div class="trips-list" style="margin-top: 20px;">
+                    <h3>Archived</h3>
+                    <div id="archivedTripsList"></div>
+                </div>
+
+                <div id="checklistTab" class="tab-content">
+                    <div class="budget-tracker">
+                        <h3>Trip Checklist</h3>
+                        <div style="margin: 8px 0 16px;">
+                            <button class="btn btn-secondary" onclick="showElementsModal()">📝 Prepare Elements Post</button>
+                            <button class="btn btn-secondary" onclick="showIssuesModal()" style="margin-left:8px;">⚠️ Check for Issues</button>
+                        </div>
+                        <div style="display:grid; gap:16px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));">
+                            <div class="form-group">
+                                <label>Registration - Date Purchased</label>
+                                <input type="date" id="chkRegistrationDate">
+                            </div>
+                            <div class="form-group">
+                                <label>Registration - Confirmation #</label>
+                                <input type="text" id="chkRegistrationConf" placeholder="CONF12345">
+                            </div>
+                            <div class="form-group">
+                                <label>Hotel - Check-in</label>
+                                <input type="date" id="chkHotelStart">
+                            </div>
+                            <div class="form-group">
+                                <label>Hotel - Check-out</label>
+                                <input type="date" id="chkHotelEnd">
+                            </div>
+                            <div class="form-group">
+                                <label>Hotel - Confirmation #</label>
+                                <input type="text" id="chkHotelConf" placeholder="CONF67890">
+                            </div>
+                            <div class="form-group">
+                                <label>Flight - Depart Date</label>
+                                <input type="date" id="chkFlightDepart">
+                            </div>
+                            <div class="form-group">
+                                <label>Flight - Return Date</label>
+                                <input type="date" id="chkFlightReturn">
+                            </div>
+                            <div class="form-group">
+                                <label>Flight - Confirmation #</label>
+                                <input type="text" id="chkFlightConf" placeholder="CONF24680">
+                            </div>
+                        </div>
+                        <div style="margin: 12px 0 20px;">
+                            <button class="btn btn-primary" onclick="saveChecklist()">Save Checklist</button>
+                        </div>
+
+                        <h4 style="margin: 10px 0;">Presentations</h4>
+                        <div style="max-width: 360px; width: 100%;">
+                            <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:10px;">
+                                <select id="chkPresentationType" style="padding:10px; border: 1px solid var(--border); border-radius:8px; width:100%;">
+                                    <option value="Presentation">Presentation</option>
+                                    <option value="Poster">Poster</option>
+                                    <option value="Talk">Talk</option>
+                                </select>
+                                <input type="text" id="chkPresentationName" placeholder="Title" style="padding:10px; border: 1px solid var(--border); border-radius:8px; width:100%;">
+                                <button class="btn btn-secondary" onclick="addPresentation()" style="width:100%;">Add</button>
+                            </div>
+                            <div id="chkPresentationsList"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="search-box">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="searchEvents" placeholder="Search events..." onkeyup="searchEvents()">
+                </div>
+
+                <div id="quickStats" class="stats-grid" style="grid-template-columns: 1fr;">
+                    <!-- Quick stats will appear here -->
+                </div>
+            </div>
+
+            <div class="main-content">
+                <div class="tabs">
+                    <button class="tab active" onclick="switchTab('itinerary')">📅 Itinerary</button>
+                    <button class="tab" onclick="switchTab('conference')">🎤 Conference</button>
+                    <button class="tab" onclick="switchTab('packing')">🎒 Packing</button>
+                    <button class="tab" onclick="switchTab('receipts')">🧾 Receipts</button>
+                    <button class="tab" onclick="switchTab('weather')">☀️ Weather</button>
+                    <button class="tab" onclick="switchTab('map')">🗺️ Map</button>
+                    <button class="tab" onclick="switchTab('documents')">📄 Documents</button>
+                    <button class="tab" onclick="switchTab('checklist')">✅ Checklist</button>
+                </div>
+
+                <div id="itineraryTab" class="tab-content active">
+                    <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                        <button class="btn btn-primary" onclick="showAddEventModal()">+ Add Event</button>
+                        <button class="btn btn-secondary" onclick="showImportModal()">📥 Import Calendar</button>
+                        <button class="btn btn-secondary" onclick="exportItinerary()">📤 Export</button>
+                        <button class="btn btn-secondary" onclick="showAgendaModal()">📄 Agenda</button>
+                        <button class="btn btn-secondary" onclick="printItinerary()">🖨️ Print</button>
+                        <button class="btn btn-secondary" onclick="showEmailImport()">📧 Import Email PDF</button>
+                        <input type="file" id="emailPdfInput" accept="application/pdf" style="display:none" onchange="handleEmailPdfInput(this)">
+                    </div>
+                    <div id="itineraryContent">
+                        <div style="text-align: center; padding: 60px; color: #64748b;">
+                            <h3>No trip selected</h3>
+                            <p>Create a new trip or select one from the sidebar to get started</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="conferenceTab" class="tab-content">
+                    <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                        <button class="btn btn-primary" onclick="showUploadProgramModal()">📄 Upload Program</button>
+                        <input type="text" id="trackName" placeholder="Your name to track (e.g., Dr. Hallstrom)" style="flex: 1; padding: 10px; border: 2px solid var(--border); border-radius: 8px;">
+                        <button class="btn btn-success" onclick="findMyEvents()">🔍 Find My Events</button>
+                    </div>
+                    <div id="conferenceContent">
+                        <div class="file-upload" onclick="document.getElementById('conferenceFile').click()">
+                            <h3>📁 Upload Conference Program</h3>
+                            <p>Drop PDF, Word, or text files here</p>
+                            <input type="file" id="conferenceFile" style="display: none;" accept=".pdf,.doc,.docx,.txt" onchange="handleConferenceFile(this)">
+                        </div>
+                        <div id="conferenceSchedule"></div>
+                    </div>
+                </div>
+
+                <div id="packingTab" class="tab-content">
+                    <div class="packing-list">
+                        <h3>Packing Checklist</h3>
+                        <div style="display: flex; gap: 10px; margin: 20px 0;">
+                            <input type="text" id="newPackingItem" placeholder="Add item..." style="flex: 1; padding: 10px; border: 2px solid var(--border); border-radius: 8px;">
+                            <button class="btn btn-primary" onclick="addPackingItem()">Add</button>
+                        </div>
+                        <div id="packingList"></div>
+                    </div>
+                </div>
+
+                <div id="receiptsTab" class="tab-content">
+                    <div class="budget-tracker">
+                        <h3>Receipts</h3>
+                        <div style="display:flex; gap:10px; align-items:center; margin: 10px 0 6px;">
+                            <select id="receiptsFilter" onchange="setReceiptsFilter(this.value)" style="padding: 8px; border: 1px solid var(--border); border-radius: 8px;">
+                                <option value="all">All</option>
+                                <option value="unexpensed">Unexpensed</option>
+                                <option value="expensed">Expensed</option>
+                            </select>
+                            <input type="text" id="receiptsSearch" placeholder="Search vendor..." oninput="setReceiptsSearch(this.value)" style="flex:1; padding:8px 10px; border:1px solid var(--border); border-radius:8px;">
+                            <button class="btn btn-secondary" onclick="printReimbursementReport()">🖨️ Reimbursement Report</button>
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1.3fr 0.7fr 1fr 1fr 1.5fr 1.2fr 1.2fr 0.7fr auto; gap: 10px; margin: 20px 0; align-items: center;">
+                            <input type="text" id="receiptVendor" placeholder="Vendor / Merchant">
+                            <input type="number" id="receiptAmount" placeholder="Amount" step="0.01" min="0">
+                            <select id="receiptCategory">
+                                <option>Flight</option>
+                                <option>Hotel</option>
+                                <option>Food</option>
+                                <option>Transport</option>
+                                <option>Activities</option>
+                                <option>Shopping</option>
+                                <option>Other</option>
+                            </select>
+                            <input type="date" id="receiptDate">
+                            <input type="text" id="receiptNote" placeholder="Note (optional)">
+                            <input type="text" id="receiptAttendees" placeholder="Attendees (if Food)">
+                            <input type="text" id="receiptPurpose" placeholder="Business purpose (if Food)">
+                            <label style="display:flex; align-items:center; gap:6px; font-size:14px; color:#374151;">
+                                <input type="checkbox" id="receiptExpensedAtAdd"> Expensed?
+                            </label>
+                            <button class="btn btn-primary" onclick="addReceiptItem()">Add</button>
+                        </div>
+                        <div id="receiptsList"></div>
+                        <div class="budget-total" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 15px; position: sticky; bottom: 0; background: #fff; padding: 10px; border-top: 1px solid var(--border);">
+                            <div style="display:flex; justify-content: space-between; background: var(--light); padding: 10px; border-radius: 8px;">
+                                <span>Total</span>
+                                <span id="receiptsTotal">$0.00</span>
+                            </div>
+                            <div style="display:flex; justify-content: space-between; background: var(--light); padding: 10px; border-radius: 8px;">
+                                <span>Unexpensed</span>
+                                <span id="receiptsTotalUnexpensed">$0.00</span>
+                            </div>
+                            <div style="display:flex; justify-content: space-between; background: var(--light); padding: 10px; border-radius: 8px;">
+                                <span>Expensed</span>
+                                <span id="receiptsTotalExpensed">$0.00</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="weatherTab" class="tab-content">
+                    <div class="weather-widget">
+                        <h3>Weather Forecast</h3>
+                        <p>Weather data will be loaded based on your destination...</p>
+                    </div>
+                </div>
+
+                <div id="mapTab" class="tab-content">
+                    <div class="map-container" style="height: 420px; border: 1px solid var(--border); border-radius: 8px; overflow: hidden;">
+                        <div id="leafletMap" style="height: 100%; width: 100%;"></div>
+                    </div>
+                    <p style="font-size: 0.9em; margin-top: 10px; color:#64748b;">Map centers on the current trip destination. Edit the trip destination to update.</p>
+                </div>
+
+                <div id="documentsTab" class="tab-content">
+                    <div class="file-upload" onclick="document.getElementById('documentFile').click()">
+                        <h3>📎 Upload Documents</h3>
+                        <p>Passports, tickets, reservations, etc.</p>
+                        <input type="file" id="documentFile" style="display: none;" multiple onchange="handleDocumentUpload(this)">
+                    </div>
+                    <div id="documentsList" style="margin-top: 20px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <div id="newTripModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Create New Trip</h2>
+                <button class="close-modal" onclick="closeModal('newTripModal')">×</button>
+            </div>
+            <div class="form-group">
+                <label>Trip Name</label>
+                <input type="text" id="newTripName" placeholder="e.g., AAHKS Conference 2025">
+            </div>
+            <div class="form-group">
+                <label>Destination</label>
+                <input type="text" id="newTripDestination" placeholder="e.g., Dallas, TX">
+            </div>
+            <div class="form-group">
+                <label>Start Date</label>
+                <input type="date" id="newTripStart">
+            </div>
+            <div class="form-group">
+                <label>End Date</label>
+                <input type="date" id="newTripEnd">
+            </div>
+            <button class="btn btn-primary btn-full" onclick="createNewTrip()">Create Trip</button>
+        </div>
+    </div>
+
+    <div id="addEventModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Add Event</h2>
+                <button class="close-modal" onclick="closeModal('addEventModal')">×</button>
+            </div>
+            <div class="form-group">
+                <label>Event Type</label>
+                <select id="eventType">
+                    <option value="personal">Personal Event</option>
+                    <option value="conference">Conference Session</option>
+                    <option value="flight">Flight</option>
+                    <option value="hotel">Hotel</option>
+                    <option value="meeting">Meeting</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Title</label>
+                <input type="text" id="eventTitle" placeholder="Event title">
+            </div>
+            <div class="form-group">
+                <label>Date</label>
+                <input type="date" id="eventDate">
+            </div>
+            <div class="form-group">
+                <label>Start Time</label>
+                <input type="time" id="eventStartTime">
+            </div>
+            <div class="form-group">
+                <label>End Time</label>
+                <input type="time" id="eventEndTime">
+            </div>
+            <div class="form-group">
+                <label>Location</label>
+                <input type="text" id="eventLocation" placeholder="Location">
+            </div>
+            <div class="form-group">
+                <label>Description</label>
+                <textarea id="eventDescription" placeholder="Additional details"></textarea>
+            </div>
+            <button class="btn btn-primary btn-full" onclick="addEvent()">Add Event</button>
+        </div>
+    </div>
+
+    <div id="importModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Import Calendar</h2>
+                <button class="close-modal" onclick="closeModal('importModal')">×</button>
+            </div>
+            <div style="background: #f0f9ff; border-left: 4px solid #0ea5e9; padding: 15px; margin-bottom: 20px; border-radius: 8px;">
+                💡 <strong>How to get .ics files:</strong><br>
+                • <strong>Google Calendar:</strong> Settings → Import & Export → Export<br>
+                • <strong>Outlook:</strong> File → Save Calendar → iCalendar Format<br>
+                • <strong>Apple Calendar:</strong> File → Export → Export
+            </div>
+            <div class="form-group">
+                <label>Calendar Format</label>
+                <select id="importFormat">
+                    <option value="ics">iCalendar (.ics)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Calendar Data</label>
+                <textarea id="importData" placeholder="Paste your .ics file content here..."></textarea>
+            </div>
+            <button class="btn btn-primary btn-full" onclick="importCalendar()">Import</button>
+        </div>
+    </div>
+
+    <div id="agendaModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Conference Agenda</h2>
+                <button class="close-modal" onclick="closeModal('agendaModal')">×</button>
+            </div>
+            <div class="form-group">
+                <label>Agenda URL (optional)</label>
+                <input type="text" id="agendaUrl" placeholder="https://example.com/agenda.pdf or page URL">
+            </div>
+            <div class="form-group">
+                <label>Agenda Notes / Paste Agenda</label>
+                <textarea id="agendaText" placeholder="Paste the agenda text or notes here..."></textarea>
+            </div>
+            <div class="form-group">
+                <label>Upload PDF(s)</label>
+                <input type="file" id="agendaPdfInput" accept="application/pdf" multiple onchange="handleAgendaPdfSelect(this)">
+                <small style="color:#64748b; display:block; margin-top:6px;">PDFs are stored locally in your browser. Large files may increase storage usage.</small>
+            </div>
+            <div id="agendaPdfList" style="margin:10px 0;"></div>
+            <div style="display:flex; gap:10px;">
+                <button class="btn btn-primary" style="flex:1;" onclick="saveAgenda()">Save</button>
+                <button class="btn btn-secondary" style="flex:1;" onclick="openAgendaUrl()">Open URL</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js?v=18"></script>
+</body>
+</html>

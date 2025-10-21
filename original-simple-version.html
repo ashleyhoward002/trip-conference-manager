@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trip Itinerary Generator - Simple Version</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+            animation: fadeInDown 0.8s ease;
+        }
+
+        .header h1 {
+            font-size: 3em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.95;
+        }
+
+        .main-card {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            animation: fadeInUp 0.8s ease;
+        }
+
+        .input-section {
+            margin-bottom: 30px;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .input-group input, .input-group select, .input-group textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e1e8ed;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .input-group input:focus, .input-group select:focus, .input-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .input-group textarea {
+            min-height: 150px;
+            resize: vertical;
+            font-family: 'Monaco', 'Courier New', monospace;
+            font-size: 14px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-secondary {
+            background: #f0f3f7;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #e1e8ed;
+        }
+
+        .itinerary-output {
+            display: none;
+            margin-top: 40px;
+            padding-top: 30px;
+            border-top: 2px solid #e1e8ed;
+        }
+
+        .itinerary-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .itinerary-header h2 {
+            font-size: 2.5em;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .trip-dates {
+            font-size: 1.2em;
+            color: #666;
+        }
+
+        .day-section {
+            margin-bottom: 40px;
+            animation: slideIn 0.5s ease;
+        }
+
+        .day-header {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .day-title {
+            font-size: 1.4em;
+            font-weight: 600;
+        }
+
+        .day-date {
+            font-size: 1.1em;
+            opacity: 0.95;
+        }
+
+        .event-card {
+            background: #f8fafc;
+            border-left: 4px solid #667eea;
+            padding: 20px;
+            margin-bottom: 15px;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .event-card:hover {
+            transform: translateX(5px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .event-time {
+            font-size: 14px;
+            color: #667eea;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .event-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .event-location {
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .event-description {
+            color: #666;
+            line-height: 1.6;
+        }
+
+        .export-buttons {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+            justify-content: center;
+        }
+
+        .sample-hint {
+            background: #f0f9ff;
+            border-left: 4px solid #0ea5e9;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .main-card {
+                padding: 20px;
+            }
+            
+            .button-group {
+                flex-direction: column;
+            }
+            
+            .export-buttons {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🗓️ Trip Itinerary Generator</h1>
+            <p>Transform your calendar events into beautiful travel itineraries</p>
+        </div>
+
+        <div class="main-card">
+            <div class="input-section">
+                <div class="sample-hint">
+                    💡 <strong>Tip:</strong> Paste your .ics file content or use the sample data to see how it works!
+                </div>
+
+                <div class="input-group">
+                    <label for="tripName">Trip Name</label>
+                    <input type="text" id="tripName" placeholder="e.g., European Adventure 2025">
+                </div>
+
+                <div class="input-group">
+                    <label for="calendarType">Calendar Format</label>
+                    <select id="calendarType">
+                        <option value="ics">iCalendar (.ics) - Works with Outlook, Google Calendar, Apple Calendar</option>
+                    </select>
+                </div>
+
+                <div class="input-group">
+                    <label for="calendarData">Calendar Data (Paste .ics file content)</label>
+                    <textarea id="calendarData" placeholder="Paste your .ics calendar file content here..."></textarea>
+                </div>
+
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="generateItinerary()">
+                        Generate Itinerary
+                    </button>
+                    <button class="btn btn-secondary" onclick="loadSampleData()">
+                        Load Sample Trip
+                    </button>
+                    <button class="btn btn-secondary" onclick="clearAll()">
+                        Clear All
+                    </button>
+                </div>
+            </div>
+
+            <div id="itineraryOutput" class="itinerary-output">
+                <!-- Itinerary will be generated here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Your original script remains here - this is the simple single-trip version
+    </script>
+</body>
+</html>
