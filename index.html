@@ -157,6 +157,7 @@
                     <button class="tab" onclick="switchTab('map')">🗺️ Map</button>
                     <button class="tab" onclick="switchTab('documents')">📄 Documents</button>
                     <button class="tab" onclick="switchTab('checklist')">✅ Checklist</button>
+                    <button class="tab" onclick="switchTab('settings')">⚙️ Settings</button>
                 </div>
 
                 <div id="itineraryTab" class="tab-content active">
@@ -263,10 +264,30 @@
                 </div>
 
                 <div id="mapTab" class="tab-content">
-                    <div class="map-container" style="height: 420px; border: 1px solid var(--border); border-radius: 8px; overflow: hidden;">
-                        <div id="leafletMap" style="height: 100%; width: 100%;"></div>
+                    <div style="display: grid; grid-template-columns: 230px 1fr 320px; gap: 16px; min-width: 900px;">
+                        <div style="border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                            <div style="padding: 12px; background: var(--light); border-bottom: 1px solid var(--border); font-weight: 600;">
+                                📍 Locations
+                            </div>
+                            <div id="mapLocationsList" style="max-height: 420px; overflow-y: auto;">
+                                <p style="color:#64748b; padding:10px;">Loading...</p>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="map-container" style="height: 420px; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                                <div id="leafletMap" style="height: 100%; width: 100%;"></div>
+                            </div>
+                            <p style="font-size: 0.9em; margin-top: 10px; color:#64748b;">💡 All event locations from your itinerary are shown on the map. Click a location in the list to zoom to it.</p>
+                        </div>
+                        <div style="border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                            <div style="padding: 12px; background: #3b82f6; color: white; border-bottom: 1px solid var(--border); font-weight: 600;">
+                                ✨ Things to Do
+                            </div>
+                            <div id="thingsToDoList" style="max-height: 420px; overflow-y: auto; padding: 12px; background: #f8fafc;">
+                                <p style="color:#64748b; font-style: italic;">Loading recommendations...</p>
+                            </div>
+                        </div>
                     </div>
-                    <p style="font-size: 0.9em; margin-top: 10px; color:#64748b;">Map centers on the current trip destination. Edit the trip destination to update.</p>
                 </div>
 
                 <div id="documentsTab" class="tab-content">
@@ -276,6 +297,42 @@
                         <input type="file" id="documentFile" style="display: none;" multiple onchange="handleDocumentUpload(this)">
                     </div>
                     <div id="documentsList" style="margin-top: 20px;"></div>
+                </div>
+
+                <div id="settingsTab" class="tab-content">
+                    <div style="max-width: 700px;">
+                        <h2 style="margin-bottom:20px;">⚙️ Settings</h2>
+                        
+                        <div style="background:#fff; padding:24px; border-radius:12px; border:1px solid var(--border); margin-bottom:20px;">
+                            <h3 style="margin-top:0;">🎉 Live Events Integration</h3>
+                            <p style="color:#64748b; margin-bottom:16px;">Connect to Ticketmaster API to discover live events, concerts, sports, and shows happening during your trip!</p>
+                            
+                            <div class="form-group">
+                                <label>Ticketmaster API Key</label>
+                                <input type="text" id="ticketmasterApiKey" placeholder="Enter your API key here..." style="font-family: monospace;">
+                                <small style="color:#64748b; font-size:0.85em;">
+                                    Don't have an API key? <a href="https://developer.ticketmaster.com/products-and-docs/apis/getting-started/" target="_blank" rel="noopener noreferrer" style="color:#3b82f6;">Get one free from Ticketmaster</a>
+                                </small>
+                            </div>
+                            
+                            <button class="btn btn-primary" onclick="saveApiKey()">💾 Save API Key</button>
+                            <div id="apiKeyStatus" style="margin-top:12px;"></div>
+                        </div>
+
+                        <div style="background:#f8fafc; padding:20px; border-radius:12px; border:1px solid var(--border);">
+                            <h4 style="margin-top:0;">ℹ️ How to Get Your Free API Key:</h4>
+                            <ol style="color:#64748b; font-size:0.9em; line-height:1.8;">
+                                <li>Visit <a href="https://developer.ticketmaster.com/" target="_blank" rel="noopener noreferrer" style="color:#3b82f6;">developer.ticketmaster.com</a></li>
+                                <li>Click "Get Your Free API Key"</li>
+                                <li>Sign up or log in</li>
+                                <li>Copy your Consumer Key</li>
+                                <li>Paste it above and save!</li>
+                            </ol>
+                            <p style="color:#64748b; font-size:0.85em; margin-bottom:0;">
+                                <strong>🔒 Privacy:</strong> Your API key is stored locally in your browser only. It never leaves your device.
+                            </p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -305,6 +362,34 @@
                 <input type="date" id="newTripEnd">
             </div>
             <button class="btn btn-primary btn-full" onclick="createNewTrip()">Create Trip</button>
+        </div>
+    </div>
+
+    <div id="editTripModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>✏️ Edit Trip</h2>
+                <button class="close-modal" onclick="closeModal('editTripModal')">×</button>
+            </div>
+            <input type="hidden" id="editTripId">
+            <div class="form-group">
+                <label>Trip Name</label>
+                <input type="text" id="editTripName" placeholder="e.g., AAHKS Conference 2025">
+            </div>
+            <div class="form-group">
+                <label>Destination</label>
+                <input type="text" id="editTripDestination" placeholder="e.g., Dallas, Texas">
+                <small style="color:#64748b; font-size:0.85em;">💡 Use full names like "Dallas, Texas" for accurate weather</small>
+            </div>
+            <div class="form-group">
+                <label>Start Date</label>
+                <input type="date" id="editTripStart">
+            </div>
+            <div class="form-group">
+                <label>End Date</label>
+                <input type="date" id="editTripEnd">
+            </div>
+            <button class="btn btn-primary btn-full" onclick="saveEditTrip()">💾 Save Changes</button>
         </div>
     </div>
 
