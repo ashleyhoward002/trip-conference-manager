@@ -8,6 +8,10 @@ let documents = JSON.parse(localStorage.getItem('documents')) || {};
 let conferenceProgram = JSON.parse(localStorage.getItem('conferenceProgram')) || {};
 let agendas = JSON.parse(localStorage.getItem('agendas')) || {};
 let agendaPdfs = JSON.parse(localStorage.getItem('agendaPdfs')) || {}; // { [tripId]: [{name, dataUrl}] }
+let flights = JSON.parse(localStorage.getItem('flights')) || {}; // { [tripId]: [{airline, flightNumber, ...}] }
+let hotels = JSON.parse(localStorage.getItem('hotels')) || {}; // { [tripId]: [{hotelName, address, ...}] }
+let presentations = JSON.parse(localStorage.getItem('presentations')) || {}; // { [tripId]: [{type, title, ...}] }
+let memories = JSON.parse(localStorage.getItem('memories')) || {}; // { [tripId]: [{name, dataUrl, type, ...}] }
 
 function showIssuesModal() {
     const trip = getCurrentTrip();
@@ -675,54 +679,82 @@ function printItinerary() {
 // Trip Management
 function loadTrips() {
     const tripsList = document.getElementById('tripsList');
-    const archivedList = document.getElementById('archivedTripsList');
-    tripsList.innerHTML = '';
-    if (archivedList) archivedList.innerHTML = '';
+    const upcomingList = document.getElementById('upcomingTripsList');
+    const archivedContent = document.getElementById('archivedTripsContent');
+    
+    if (tripsList) tripsList.innerHTML = '';
+    if (upcomingList) upcomingList.innerHTML = '';
 
-    const active = trips.filter(t => !t.archived);
+    const active = trips.filter(t => !t.archived).sort((a, b) => new Date(b.startDate) - new Date(a.startDate));
     const archived = trips.filter(t => t.archived);
 
-    active.forEach(trip => {
+    // Show only the most recent trip in "My Trips"
+    if (active.length > 0) {
+        const mostRecent = active[0];
         const tripItem = document.createElement('div');
-        tripItem.className = `trip-item ${trip.id === currentTripId ? 'active' : ''}`;
-        tripItem.onclick = () => selectTrip(trip.id);
-        const dates = `${formatDate(new Date(trip.startDate))} - ${formatDate(new Date(trip.endDate))}`;
+        tripItem.className = `trip-item ${mostRecent.id === currentTripId ? 'active' : ''}`;
+        tripItem.onclick = () => selectTrip(mostRecent.id);
+        const dates = `${formatDate(new Date(mostRecent.startDate))} - ${formatDate(new Date(mostRecent.endDate))}`;
         tripItem.innerHTML = `
             <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
                 <div>
-                    <div style="font-weight: 600;">${trip.name}</div>
-                    <div class="trip-dates">${trip.destination}</div>
+                    <div style="font-weight: 600;">${mostRecent.name}</div>
+                    <div class="trip-dates">${mostRecent.destination}</div>
                     <div class="trip-dates">${dates}</div>
                 </div>
                 <div style="display:flex; gap:4px;">
-                    <button class="btn btn-secondary" style="padding:4px 8px; font-size:0.85em;" onclick="event.stopPropagation(); editTrip('${trip.id}')">✏️ Edit</button>
-                    <button class="btn btn-secondary" style="padding:4px 8px;" onclick="event.stopPropagation(); archiveTrip('${trip.id}')">Archive</button>
+                    <button class="btn btn-secondary" style="padding:4px 8px; font-size:0.85em;" onclick="event.stopPropagation(); editTrip('${mostRecent.id}')">✏️ Edit</button>
+                    <button class="btn btn-secondary" style="padding:4px 8px;" onclick="event.stopPropagation(); archiveTrip('${mostRecent.id}')">Archive</button>
                 </div>
             </div>
         `;
         tripsList.appendChild(tripItem);
-    });
+    }
 
-    if (archivedList) {
-        if (archived.length === 0) {
-            archivedList.innerHTML = '<p style="color:#64748b;">No archived trips</p>';
+    // Show upcoming trips in sidebar (all active except most recent)
+    if (upcomingList) {
+        const upcoming = active.slice(1); // All except first (most recent)
+        if (upcoming.length === 0) {
+            upcomingList.innerHTML = '<p style="color:#64748b; padding:10px;">No upcoming trips</p>';
         } else {
-            archived.forEach(trip => {
+            upcoming.forEach(trip => {
                 const tripItem = document.createElement('div');
-                tripItem.className = 'trip-item';
+                tripItem.className = `trip-item ${trip.id === currentTripId ? 'active' : ''}`;
                 tripItem.onclick = () => selectTrip(trip.id);
                 const dates = `${formatDate(new Date(trip.startDate))} - ${formatDate(new Date(trip.endDate))}`;
                 tripItem.innerHTML = `
-                    <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
-                        <div>
-                            <div style="font-weight: 600;">${trip.name}</div>
-                            <div class="trip-dates">${trip.destination}</div>
-                            <div class="trip-dates">${dates}</div>
-                        </div>
-                        <button class="btn btn-primary" style="padding:4px 8px;" onclick="event.stopPropagation(); unarchiveTrip('${trip.id}')">Unarchive</button>
+                    <div>
+                        <div style="font-weight: 600; font-size: 0.9em;">${trip.name}</div>
+                        <div style="font-size: 0.8em; color: #64748b;">${trip.destination}</div>
+                        <div style="font-size: 0.75em; color: #94a3b8;">${trip.startDate}</div>
                     </div>
                 `;
-                archivedList.appendChild(tripItem);
+                upcomingList.appendChild(tripItem);
+            });
+        }
+    }
+
+    // Update archived trips content in the tab
+    if (archivedContent) {
+        if (archived.length === 0) {
+            archivedContent.innerHTML = '<p style="color: #64748b; font-style: italic;">No archived trips yet.</p>';
+        } else {
+            archivedContent.innerHTML = '';
+            archived.forEach(trip => {
+                const tripCard = document.createElement('div');
+                tripCard.style.cssText = 'background: white; border: 1px solid var(--border); border-radius: 8px; padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);';
+                const dates = `${formatDate(new Date(trip.startDate))} - ${formatDate(new Date(trip.endDate))}`;
+                tripCard.innerHTML = `
+                    <div style="display:flex; justify-content:space-between; align-items:center; gap:12px;">
+                        <div style="flex: 1;">
+                            <div style="font-weight: 600; font-size: 18px; margin-bottom: 4px;">${trip.name}</div>
+                            <div style="color: #64748b; margin-bottom: 2px;">📍 ${trip.destination}</div>
+                            <div style="color: #94a3b8; font-size: 0.9em;">🗓️ ${dates}</div>
+                        </div>
+                        <button class="btn btn-primary" onclick="unarchiveTrip('${trip.id}')">Restore</button>
+                    </div>
+                `;
+                archivedContent.appendChild(tripCard);
             });
         }
     }
@@ -1222,7 +1254,7 @@ function saveChecklist() {
     alert('Checklist saved');
 }
 
-function addPresentation() {
+function addChecklistPresentation() {
     const trip = getCurrentTrip();
     if (!trip) return;
     const name = (document.getElementById('chkPresentationName')?.value || '').trim();
@@ -1326,6 +1358,26 @@ function switchTab(tabName) {
     // Load weather when opening Weather tab
     if (tabName === 'weather') {
         loadWeather();
+    }
+    
+    // Load flights when opening Flights tab
+    if (tabName === 'flights') {
+        renderFlightsList();
+    }
+    
+    // Load hotels when opening Hotels tab
+    if (tabName === 'hotels') {
+        renderHotelsList();
+    }
+    
+    // Load presentations when opening Presentations tab
+    if (tabName === 'presentations') {
+        renderPresentationsList();
+    }
+    
+    // Load memories when opening Memories tab
+    if (tabName === 'memories') {
+        renderMemoriesGallery();
     }
     
     // Load API key when opening Settings tab
@@ -2804,6 +2856,849 @@ function findMyEvents() {
 function handleDocumentUpload(input) {
     if (input.files && input.files.length > 0) {
         alert(`${input.files.length} document(s) uploaded\nFeature to be implemented`);
+    }
+}
+
+// Toggle Manual Entry Sections
+function toggleFlightManualEntry() {
+    const section = document.getElementById('flightManualEntrySection');
+    if (section.style.display === 'none') {
+        section.style.display = 'block';
+    } else {
+        section.style.display = 'none';
+    }
+}
+
+function toggleHotelManualEntry() {
+    const section = document.getElementById('hotelManualEntrySection');
+    if (section.style.display === 'none') {
+        section.style.display = 'block';
+    } else {
+        section.style.display = 'none';
+    }
+}
+
+function togglePresentationManualEntry() {
+    const section = document.getElementById('presentationManualEntrySection');
+    if (section.style.display === 'none') {
+        section.style.display = 'block';
+    } else {
+        section.style.display = 'none';
+    }
+}
+
+// File Upload Handlers
+function handleFlightUpload(input) {
+    const trip = getCurrentTrip();
+    if (!trip) {
+        alert('Please select a trip first');
+        return;
+    }
+
+    if (!input.files || input.files.length === 0) return;
+
+    const file = input.files[0];
+    const reader = new FileReader();
+
+    reader.onload = function(e) {
+        const text = e.target.result;
+        const flightInfo = parseFlightInfo(text);
+        
+        if (flightInfo) {
+            // Auto-fill the form
+            document.getElementById('flightAirline').value = flightInfo.airline || '';
+            document.getElementById('flightNumber').value = flightInfo.flightNumber || '';
+            document.getElementById('flightDepartDate').value = flightInfo.departDate || '';
+            document.getElementById('flightDepartTime').value = flightInfo.departTime || '';
+            document.getElementById('flightFrom').value = flightInfo.from || '';
+            document.getElementById('flightTo').value = flightInfo.to || '';
+            document.getElementById('flightConfirmation').value = flightInfo.confirmation || '';
+            
+            // Show manual entry section for review
+            document.getElementById('flightManualEntrySection').style.display = 'block';
+            
+            // Add to itinerary automatically
+            addFlightToItinerary(flightInfo);
+            
+            alert('✅ Flight information extracted! Please review and save.');
+        } else {
+            alert('Could not extract flight information. Please enter manually.');
+            document.getElementById('flightManualEntrySection').style.display = 'block';
+        }
+    };
+
+    reader.readAsText(file);
+    input.value = ''; // Reset input
+}
+
+function handleHotelUpload(input) {
+    const trip = getCurrentTrip();
+    if (!trip) {
+        alert('Please select a trip first');
+        return;
+    }
+
+    if (!input.files || input.files.length === 0) return;
+
+    const file = input.files[0];
+    const reader = new FileReader();
+
+    reader.onload = function(e) {
+        const text = e.target.result;
+        const hotelInfo = parseHotelInfo(text);
+        
+        if (hotelInfo) {
+            // Auto-fill the form
+            document.getElementById('hotelName').value = hotelInfo.hotelName || '';
+            document.getElementById('hotelAddress').value = hotelInfo.address || '';
+            document.getElementById('hotelCheckinDate').value = hotelInfo.checkinDate || '';
+            document.getElementById('hotelCheckinTime').value = hotelInfo.checkinTime || '15:00';
+            document.getElementById('hotelCheckoutDate').value = hotelInfo.checkoutDate || '';
+            document.getElementById('hotelCheckoutTime').value = hotelInfo.checkoutTime || '11:00';
+            document.getElementById('hotelConfirmation').value = hotelInfo.confirmation || '';
+            document.getElementById('hotelPhone').value = hotelInfo.phone || '';
+            
+            // Show manual entry section for review
+            document.getElementById('hotelManualEntrySection').style.display = 'block';
+            
+            // Add to itinerary automatically
+            addHotelToItinerary(hotelInfo);
+            
+            alert('✅ Hotel information extracted! Please review and save.');
+        } else {
+            alert('Could not extract hotel information. Please enter manually.');
+            document.getElementById('hotelManualEntrySection').style.display = 'block';
+        }
+    };
+
+    reader.readAsText(file);
+    input.value = ''; // Reset input
+}
+
+// Parse Flight Information from Text
+function parseFlightInfo(text) {
+    const info = {};
+    
+    // Look for airline names
+    const airlines = ['Delta', 'United', 'American', 'Southwest', 'JetBlue', 'Alaska', 'Spirit', 'Frontier'];
+    for (const airline of airlines) {
+        if (text.includes(airline)) {
+            info.airline = airline;
+            break;
+        }
+    }
+    
+    // Look for flight number pattern (e.g., DL1234, UA567)
+    const flightNumMatch = text.match(/\b([A-Z]{2}\d{1,4})\b/);
+    if (flightNumMatch) info.flightNumber = flightNumMatch[1];
+    
+    // Look for confirmation number patterns
+    const confMatch = text.match(/(?:Confirmation|Conf\.?|Booking)\s*#?:?\s*([A-Z0-9]{5,10})/i);
+    if (confMatch) info.confirmation = confMatch[1];
+    
+    // Look for date patterns (YYYY-MM-DD or MM/DD/YYYY)
+    const dateMatch = text.match(/(\d{4}-\d{2}-\d{2})|(\d{1,2}\/\d{1,2}\/\d{4})/);
+    if (dateMatch) {
+        const dateStr = dateMatch[1] || dateMatch[2];
+        if (dateStr.includes('-')) {
+            info.departDate = dateStr;
+        } else {
+            // Convert MM/DD/YYYY to YYYY-MM-DD
+            const parts = dateStr.split('/');
+            info.departDate = `${parts[2]}-${parts[0].padStart(2, '0')}-${parts[1].padStart(2, '0')}`;
+        }
+    }
+    
+    // Look for time pattern
+    const timeMatch = text.match(/(\d{1,2}:\d{2}\s*(?:AM|PM)?)/i);
+    if (timeMatch) {
+        let timeStr = timeMatch[1];
+        // Convert to 24-hour format if needed
+        if (timeStr.includes('PM') && !timeStr.startsWith('12')) {
+            const hour = parseInt(timeStr.split(':')[0]) + 12;
+            timeStr = hour + ':' + timeStr.split(':')[1].replace(/[^0-9]/g, '');
+        }
+        info.departTime = timeStr.replace(/[^0-9:]/g, '').substring(0, 5);
+    }
+    
+    // Look for airport codes or city names
+    const routeMatch = text.match(/(?:from|depart(?:ing)?|origin)[\s:]+([A-Z]{3}|[A-Za-z\s]+?)\s+(?:to|arriv(?:ing)?|destination)[\s:]+([A-Z]{3}|[A-Za-z\s]+)/i);
+    if (routeMatch) {
+        info.from = routeMatch[1].trim();
+        info.to = routeMatch[2].trim();
+    }
+    
+    return Object.keys(info).length > 0 ? info : null;
+}
+
+// Parse Hotel Information from Text
+function parseHotelInfo(text) {
+    const info = {};
+    
+    // Look for hotel chains
+    const hotels = ['Marriott', 'Hilton', 'Hyatt', 'Sheraton', 'Holiday Inn', 'Courtyard', 'Hampton Inn', 'Westin', 'Doubletree', 'Radisson'];
+    for (const hotel of hotels) {
+        if (text.includes(hotel)) {
+            const nameMatch = text.match(new RegExp(`(${hotel}[^\n]*?)(?:\n|$)`, 'i'));
+            if (nameMatch) info.hotelName = nameMatch[1].trim();
+            break;
+        }
+    }
+    
+    // Look for address
+    const addressMatch = text.match(/(\d+\s+[A-Za-z\s]+(?:Street|St|Avenue|Ave|Road|Rd|Boulevard|Blvd|Drive|Dr|Lane|Ln)[^\n]*)/i);
+    if (addressMatch) info.address = addressMatch[1].trim();
+    
+    // Look for confirmation number
+    const confMatch = text.match(/(?:Confirmation|Conf\.?|Reservation|Booking)\s*#?:?\s*([A-Z0-9]{5,15})/i);
+    if (confMatch) info.confirmation = confMatch[1];
+    
+    // Look for check-in date
+    const checkinMatch = text.match(/(?:Check.?in|Arrival)[:\s]+(\d{4}-\d{2}-\d{2})|(\d{1,2}\/\d{1,2}\/\d{4})/i);
+    if (checkinMatch) {
+        const dateStr = checkinMatch[1] || checkinMatch[2];
+        if (dateStr.includes('-')) {
+            info.checkinDate = dateStr;
+        } else {
+            const parts = dateStr.split('/');
+            info.checkinDate = `${parts[2]}-${parts[0].padStart(2, '0')}-${parts[1].padStart(2, '0')}`;
+        }
+    }
+    
+    // Look for check-out date
+    const checkoutMatch = text.match(/(?:Check.?out|Departure)[:\s]+(\d{4}-\d{2}-\d{2})|(\d{1,2}\/\d{1,2}\/\d{4})/i);
+    if (checkoutMatch) {
+        const dateStr = checkoutMatch[1] || checkoutMatch[2];
+        if (dateStr.includes('-')) {
+            info.checkoutDate = dateStr;
+        } else {
+            const parts = dateStr.split('/');
+            info.checkoutDate = `${parts[2]}-${parts[0].padStart(2, '0')}-${parts[1].padStart(2, '0')}`;
+        }
+    }
+    
+    // Look for phone number
+    const phoneMatch = text.match(/(\(\d{3}\)\s*\d{3}-\d{4})|(\d{3}-\d{3}-\d{4})|\+?1?[\s.-]?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}/);
+    if (phoneMatch) info.phone = phoneMatch[0].trim();
+    
+    return Object.keys(info).length > 0 ? info : null;
+}
+
+// Add Flight to Itinerary
+function addFlightToItinerary(flightInfo) {
+    const trip = getCurrentTrip();
+    if (!trip) return;
+    
+    const event = {
+        id: Date.now(),
+        type: 'flight',
+        title: `${flightInfo.airline || 'Flight'} ${flightInfo.flightNumber || ''}`,
+        date: flightInfo.departDate || '',
+        startTime: flightInfo.departTime || '',
+        location: `${flightInfo.from || ''} → ${flightInfo.to || ''}`,
+        description: `Confirmation: ${flightInfo.confirmation || 'N/A'}`
+    };
+    
+    if (!trip.events) trip.events = [];
+    trip.events.push(event);
+    
+    // Sort events by date and time
+    trip.events.sort((a, b) => {
+        const dateA = new Date(a.date + ' ' + (a.startTime || '00:00'));
+        const dateB = new Date(b.date + ' ' + (b.startTime || '00:00'));
+        return dateA - dateB;
+    });
+    
+    saveTripToLocalStorage();
+}
+
+// Add Hotel to Itinerary
+function addHotelToItinerary(hotelInfo) {
+    const trip = getCurrentTrip();
+    if (!trip) return;
+    
+    // Add check-in event
+    const checkinEvent = {
+        id: Date.now(),
+        type: 'hotel',
+        title: `Check-in: ${hotelInfo.hotelName || 'Hotel'}`,
+        date: hotelInfo.checkinDate || '',
+        startTime: hotelInfo.checkinTime || '15:00',
+        location: hotelInfo.address || '',
+        description: `Confirmation: ${hotelInfo.confirmation || 'N/A'}\nPhone: ${hotelInfo.phone || 'N/A'}`
+    };
+    
+    // Add check-out event
+    const checkoutEvent = {
+        id: Date.now() + 1,
+        type: 'hotel',
+        title: `Check-out: ${hotelInfo.hotelName || 'Hotel'}`,
+        date: hotelInfo.checkoutDate || '',
+        startTime: hotelInfo.checkoutTime || '11:00',
+        location: hotelInfo.address || '',
+        description: `Confirmation: ${hotelInfo.confirmation || 'N/A'}`
+    };
+    
+    if (!trip.events) trip.events = [];
+    trip.events.push(checkinEvent, checkoutEvent);
+    
+    // Sort events by date and time
+    trip.events.sort((a, b) => {
+        const dateA = new Date(a.date + ' ' + (a.startTime || '00:00'));
+        const dateB = new Date(b.date + ' ' + (b.startTime || '00:00'));
+        return dateA - dateB;
+    });
+    
+    saveTripToLocalStorage();
+}
+
+// Flight Management Functions
+function addFlight() {
+    const trip = getCurrentTrip();
+    if (!trip) {
+        alert('Please select a trip first');
+        return;
+    }
+
+    const airline = document.getElementById('flightAirline').value.trim();
+    const flightNumber = document.getElementById('flightNumber').value.trim();
+    const departDate = document.getElementById('flightDepartDate').value;
+    const departTime = document.getElementById('flightDepartTime').value;
+    const from = document.getElementById('flightFrom').value.trim();
+    const to = document.getElementById('flightTo').value.trim();
+    const confirmation = document.getElementById('flightConfirmation').value.trim();
+    const notes = document.getElementById('flightNotes').value.trim();
+
+    if (!airline || !flightNumber || !departDate || !from || !to) {
+        alert('Please fill in all required fields (Airline, Flight Number, Date, From, To)');
+        return;
+    }
+
+    const flight = {
+        id: Date.now(),
+        airline,
+        flightNumber,
+        departDate,
+        departTime,
+        from,
+        to,
+        confirmation,
+        notes
+    };
+
+    if (!flights[trip.id]) {
+        flights[trip.id] = [];
+    }
+
+    flights[trip.id].push(flight);
+    localStorage.setItem('flights', JSON.stringify(flights));
+
+    // Clear form
+    document.getElementById('flightAirline').value = '';
+    document.getElementById('flightNumber').value = '';
+    document.getElementById('flightDepartDate').value = '';
+    document.getElementById('flightDepartTime').value = '';
+    document.getElementById('flightFrom').value = '';
+    document.getElementById('flightTo').value = '';
+    document.getElementById('flightConfirmation').value = '';
+    document.getElementById('flightNotes').value = '';
+
+    renderFlightsList();
+}
+
+function renderFlightsList() {
+    const trip = getCurrentTrip();
+    const flightsList = document.getElementById('flightsList');
+    if (!flightsList) return;
+
+    if (!trip || !flights[trip.id] || flights[trip.id].length === 0) {
+        flightsList.innerHTML = '<p style="color: #64748b; font-style: italic;">No flights added yet. Add your first flight above!</p>';
+        return;
+    }
+
+    flightsList.innerHTML = '';
+    flights[trip.id].forEach(flight => {
+        const card = document.createElement('div');
+        card.style.cssText = 'background: white; border: 1px solid var(--border); border-radius: 8px; padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);';
+        
+        const timeStr = flight.departTime ? ` at ${flight.departTime}` : '';
+        
+        card.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+                <div>
+                    <div style="font-size: 18px; font-weight: 600; color: #1e293b; margin-bottom: 4px;">
+                        ✈️ ${flight.airline} ${flight.flightNumber}
+                    </div>
+                    <div style="color: #64748b; font-size: 14px;">${flight.departDate}${timeStr}</div>
+                </div>
+                <button onclick="deleteFlight(${flight.id})" style="background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 14px;">Delete</button>
+            </div>
+            <div style="display: grid; grid-template-columns: auto 1fr; gap: 8px; font-size: 14px; margin-bottom: 8px;">
+                <strong>From:</strong> <span>${flight.from}</span>
+                <strong>To:</strong> <span>${flight.to}</span>
+                ${flight.confirmation ? `<strong>Confirmation:</strong> <span>${flight.confirmation}</span>` : ''}
+                ${flight.notes ? `<strong>Notes:</strong> <span>${flight.notes}</span>` : ''}
+            </div>
+            <button onclick="quickCheckStatus('${flight.airline}', '${flight.flightNumber}', '${flight.departDate}')" style="background: #3b82f6; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 13px; width: 100%; margin-top: 8px;">🔍 Check Status</button>
+        `;
+        
+        flightsList.appendChild(card);
+    });
+}
+
+function deleteFlight(flightId) {
+    const trip = getCurrentTrip();
+    if (!trip) return;
+
+    if (confirm('Are you sure you want to delete this flight?')) {
+        flights[trip.id] = flights[trip.id].filter(f => f.id !== flightId);
+        localStorage.setItem('flights', JSON.stringify(flights));
+        renderFlightsList();
+    }
+}
+
+function quickCheckStatus(airline, flightNumber, date) {
+    document.getElementById('statusAirline').value = airline;
+    document.getElementById('statusFlightNumber').value = flightNumber;
+    document.getElementById('statusDate').value = date;
+    checkFlightStatus();
+}
+
+function checkFlightStatus() {
+    const airline = document.getElementById('statusAirline').value.trim();
+    const flightNumber = document.getElementById('statusFlightNumber').value.trim();
+    const date = document.getElementById('statusDate').value;
+    const resultDiv = document.getElementById('flightStatusResult');
+
+    if (!airline || !flightNumber || !date) {
+        alert('Please fill in all fields to check flight status');
+        return;
+    }
+
+    // Show loading message
+    resultDiv.style.display = 'block';
+    resultDiv.innerHTML = '<p style="margin: 0; text-align: center;">🔄 Checking flight status...</p>';
+
+    // Simulate status check (in real app, you'd call an API)
+    setTimeout(() => {
+        resultDiv.innerHTML = `
+            <div style="text-align: center;">
+                <div style="font-size: 16px; font-weight: 600; margin-bottom: 8px;">✅ ${airline} ${flightNumber}</div>
+                <div style="font-size: 14px; margin-bottom: 12px;">${date}</div>
+                <div style="background: rgba(255,255,255,0.3); padding: 12px; border-radius: 6px;">
+                    <strong>💡 Status Lookup:</strong><br>
+                    Please visit your airline's website for real-time flight status updates.<br>
+                    <a href="https://www.google.com/search?q=${encodeURIComponent(airline + ' ' + flightNumber + ' status')}" target="_blank" rel="noopener noreferrer" style="color: white; text-decoration: underline; font-weight: 600; margin-top: 8px; display: inline-block;">Search Flight Status on Google</a>
+                </div>
+            </div>
+        `;
+    }, 1000);
+}
+
+// Hotel Management Functions
+function addHotel() {
+    const trip = getCurrentTrip();
+    if (!trip) {
+        alert('Please select a trip first');
+        return;
+    }
+
+    const hotelName = document.getElementById('hotelName').value.trim();
+    const address = document.getElementById('hotelAddress').value.trim();
+    const checkinDate = document.getElementById('hotelCheckinDate').value;
+    const checkinTime = document.getElementById('hotelCheckinTime').value;
+    const checkoutDate = document.getElementById('hotelCheckoutDate').value;
+    const checkoutTime = document.getElementById('hotelCheckoutTime').value;
+    const confirmation = document.getElementById('hotelConfirmation').value.trim();
+    const phone = document.getElementById('hotelPhone').value.trim();
+    const notes = document.getElementById('hotelNotes').value.trim();
+
+    if (!hotelName || !address || !checkinDate || !checkoutDate) {
+        alert('Please fill in all required fields (Hotel Name, Address, Check-in Date, Check-out Date)');
+        return;
+    }
+
+    const hotel = {
+        id: Date.now(),
+        hotelName,
+        address,
+        checkinDate,
+        checkinTime,
+        checkoutDate,
+        checkoutTime,
+        confirmation,
+        phone,
+        notes
+    };
+
+    if (!hotels[trip.id]) {
+        hotels[trip.id] = [];
+    }
+
+    hotels[trip.id].push(hotel);
+    localStorage.setItem('hotels', JSON.stringify(hotels));
+
+    // Clear form
+    document.getElementById('hotelName').value = '';
+    document.getElementById('hotelAddress').value = '';
+    document.getElementById('hotelCheckinDate').value = '';
+    document.getElementById('hotelCheckinTime').value = '15:00';
+    document.getElementById('hotelCheckoutDate').value = '';
+    document.getElementById('hotelCheckoutTime').value = '11:00';
+    document.getElementById('hotelConfirmation').value = '';
+    document.getElementById('hotelPhone').value = '';
+    document.getElementById('hotelNotes').value = '';
+
+    // Add to itinerary
+    addHotelToItinerary(hotel);
+
+    renderHotelsList();
+    renderItinerary();
+}
+
+function renderHotelsList() {
+    const trip = getCurrentTrip();
+    const hotelsList = document.getElementById('hotelsList');
+    if (!hotelsList) return;
+
+    if (!trip || !hotels[trip.id] || hotels[trip.id].length === 0) {
+        hotelsList.innerHTML = '<p style="color: #64748b; font-style: italic;">No hotels added yet. Add your first hotel above!</p>';
+        return;
+    }
+
+    hotelsList.innerHTML = '';
+    hotels[trip.id].forEach(hotel => {
+        const card = document.createElement('div');
+        card.style.cssText = 'background: white; border: 1px solid var(--border); border-radius: 8px; padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);';
+        
+        card.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+                <div>
+                    <div style="font-size: 18px; font-weight: 600; color: #1e293b; margin-bottom: 4px;">
+                        🏨 ${hotel.hotelName}
+                    </div>
+                    <div style="color: #64748b; font-size: 14px;">${hotel.address}</div>
+                </div>
+                <button onclick="deleteHotel(${hotel.id})" style="background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 14px;">Delete</button>
+            </div>
+            <div style="display: grid; grid-template-columns: auto 1fr; gap: 8px; font-size: 14px; margin-bottom: 8px;">
+                <strong>Check-in:</strong> <span>${hotel.checkinDate} at ${hotel.checkinTime}</span>
+                <strong>Check-out:</strong> <span>${hotel.checkoutDate} at ${hotel.checkoutTime}</span>
+                ${hotel.confirmation ? `<strong>Confirmation:</strong> <span>${hotel.confirmation}</span>` : ''}
+                ${hotel.phone ? `<strong>Phone:</strong> <span>${hotel.phone}</span>` : ''}
+                ${hotel.notes ? `<strong>Notes:</strong> <span>${hotel.notes}</span>` : ''}
+            </div>
+        `;
+        
+        hotelsList.appendChild(card);
+    });
+}
+
+function deleteHotel(hotelId) {
+    const trip = getCurrentTrip();
+    if (!trip) return;
+
+    if (confirm('Are you sure you want to delete this hotel?')) {
+        hotels[trip.id] = hotels[trip.id].filter(h => h.id !== hotelId);
+        localStorage.setItem('hotels', JSON.stringify(hotels));
+        renderHotelsList();
+    }
+}
+
+// Presentation Management Functions
+function handlePresentationUpload(input) {
+    const trip = getCurrentTrip();
+    if (!trip) {
+        alert('Please select a trip first');
+        return;
+    }
+
+    if (!input.files || input.files.length === 0) return;
+
+    const file = input.files[0];
+    const reader = new FileReader();
+
+    reader.onload = function(e) {
+        const text = e.target.result;
+        const presInfo = parsePresentationInfo(text);
+        
+        if (presInfo) {
+            document.getElementById('presentationType').value = presInfo.type || 'Presentation';
+            document.getElementById('presentationTitle').value = presInfo.title || '';
+            document.getElementById('presentationDate').value = presInfo.date || '';
+            document.getElementById('presentationTime').value = presInfo.time || '';
+            document.getElementById('presentationLocation').value = presInfo.location || '';
+            
+            document.getElementById('presentationManualEntrySection').style.display = 'block';
+            alert('✅ Presentation information extracted! Please review and save.');
+        } else {
+            alert('Could not extract presentation information. Please enter manually.');
+            document.getElementById('presentationManualEntrySection').style.display = 'block';
+        }
+    };
+
+    reader.readAsText(file);
+    input.value = '';
+}
+
+function parsePresentationInfo(text) {
+    const info = {};
+    
+    const types = ['presentation', 'poster', 'panel', 'workshop', 'teaching', 'class', 'hosting'];
+    for (const type of types) {
+        if (text.toLowerCase().includes(type)) {
+            info.type = type.charAt(0).toUpperCase() + type.slice(1);
+            break;
+        }
+    }
+    
+    const titleMatch = text.match(/(?:title|subject|topic)[:\s]+([^\n]{10,100})/i);
+    if (titleMatch) info.title = titleMatch[1].trim();
+    
+    const dateMatch = text.match(/(\d{4}-\d{2}-\d{2})|(\d{1,2}\/\d{1,2}\/\d{4})/);
+    if (dateMatch) {
+        const dateStr = dateMatch[1] || dateMatch[2];
+        if (dateStr.includes('-')) {
+            info.date = dateStr;
+        } else {
+            const parts = dateStr.split('/');
+            info.date = `${parts[2]}-${parts[0].padStart(2, '0')}-${parts[1].padStart(2, '0')}`;
+        }
+    }
+    
+    const timeMatch = text.match(/(\d{1,2}:\d{2}\s*(?:AM|PM)?)/i);
+    if (timeMatch) {
+        let timeStr = timeMatch[1];
+        if (timeStr.includes('PM') && !timeStr.startsWith('12')) {
+            const hour = parseInt(timeStr.split(':')[0]) + 12;
+            timeStr = hour + ':' + timeStr.split(':')[1].replace(/[^0-9]/g, '');
+        }
+        info.time = timeStr.replace(/[^0-9:]/g, '').substring(0, 5);
+    }
+    
+    const locationMatch = text.match(/(?:room|location|hall|venue)[:\s]+([^\n]{3,50})/i);
+    if (locationMatch) info.location = locationMatch[1].trim();
+    
+    return Object.keys(info).length > 0 ? info : null;
+}
+
+function addPresentation() {
+    const trip = getCurrentTrip();
+    if (!trip) {
+        alert('Please select a trip first');
+        return;
+    }
+
+    const type = document.getElementById('presentationType').value;
+    const title = document.getElementById('presentationTitle').value.trim();
+    const date = document.getElementById('presentationDate').value;
+    const time = document.getElementById('presentationTime').value;
+    const location = document.getElementById('presentationLocation').value.trim();
+    const coPresenters = document.getElementById('presentationCoPresenters').value.trim();
+    const notes = document.getElementById('presentationNotes').value.trim();
+
+    if (!title || !date) {
+        alert('Please fill in at least Title and Date');
+        return;
+    }
+
+    const presentation = {
+        id: Date.now(),
+        type,
+        title,
+        date,
+        time,
+        location,
+        coPresenters,
+        notes
+    };
+
+    if (!presentations[trip.id]) {
+        presentations[trip.id] = [];
+    }
+
+    presentations[trip.id].push(presentation);
+    localStorage.setItem('presentations', JSON.stringify(presentations));
+
+    // Add to itinerary
+    const event = {
+        id: Date.now() + 1,
+        type: 'presentation',
+        title: `${type}: ${title}`,
+        date: date,
+        startTime: time || '',
+        location: location || '',
+        description: `${coPresenters ? 'Co-presenters: ' + coPresenters + '\n' : ''}${notes || ''}`
+    };
+    
+    if (!trip.events) trip.events = [];
+    trip.events.push(event);
+    trip.events.sort((a, b) => {
+        const dateA = new Date(a.date + ' ' + (a.startTime || '00:00'));
+        const dateB = new Date(b.date + ' ' + (b.startTime || '00:00'));
+        return dateA - dateB;
+    });
+    saveTripToLocalStorage();
+
+    // Clear form
+    document.getElementById('presentationType').value = 'Presentation';
+    document.getElementById('presentationTitle').value = '';
+    document.getElementById('presentationDate').value = '';
+    document.getElementById('presentationTime').value = '';
+    document.getElementById('presentationLocation').value = '';
+    document.getElementById('presentationCoPresenters').value = '';
+    document.getElementById('presentationNotes').value = '';
+
+    renderPresentationsList();
+    renderItinerary();
+}
+
+function renderPresentationsList() {
+    const trip = getCurrentTrip();
+    const presentationsList = document.getElementById('presentationsList');
+    if (!presentationsList) return;
+
+    if (!trip || !presentations[trip.id] || presentations[trip.id].length === 0) {
+        presentationsList.innerHTML = '<p style="color: #64748b; font-style: italic;">No presentations added yet. Add your first presentation above!</p>';
+        return;
+    }
+
+    presentationsList.innerHTML = '';
+    presentations[trip.id].forEach(pres => {
+        const card = document.createElement('div');
+        card.style.cssText = 'background: white; border: 1px solid var(--border); border-radius: 8px; padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);';
+        
+        card.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+                <div>
+                    <div style="font-size: 18px; font-weight: 600; color: #1e293b; margin-bottom: 4px;">
+                        🎤 ${pres.title}
+                    </div>
+                    <div style="color: #8b5cf6; font-size: 13px; font-weight: 600; margin-bottom: 4px;">${pres.type}</div>
+                    <div style="color: #64748b; font-size: 14px;">${pres.date}${pres.time ? ' at ' + pres.time : ''}</div>
+                </div>
+                <button onclick="deletePresentation(${pres.id})" style="background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 14px;">Delete</button>
+            </div>
+            <div style="display: grid; grid-template-columns: auto 1fr; gap: 8px; font-size: 14px;">
+                ${pres.location ? `<strong>Location:</strong> <span>${pres.location}</span>` : ''}
+                ${pres.coPresenters ? `<strong>Co-presenters:</strong> <span>${pres.coPresenters}</span>` : ''}
+                ${pres.notes ? `<strong>Notes:</strong> <span>${pres.notes}</span>` : ''}
+            </div>
+        `;
+        
+        presentationsList.appendChild(card);
+    });
+}
+
+function deletePresentation(presId) {
+    const trip = getCurrentTrip();
+    if (!trip) return;
+
+    if (confirm('Are you sure you want to delete this presentation?')) {
+        presentations[trip.id] = presentations[trip.id].filter(p => p.id !== presId);
+        localStorage.setItem('presentations', JSON.stringify(presentations));
+        renderPresentationsList();
+    }
+}
+
+// Memories Management Functions
+function handleMemoriesUpload(input) {
+    const trip = getCurrentTrip();
+    if (!trip) {
+        alert('Please select a trip first');
+        return;
+    }
+
+    if (!input.files || input.files.length === 0) return;
+
+    const files = Array.from(input.files);
+    let processed = 0;
+
+    files.forEach(file => {
+        const reader = new FileReader();
+
+        reader.onload = function(e) {
+            const memory = {
+                id: Date.now() + processed,
+                name: file.name,
+                dataUrl: e.target.result,
+                type: file.type,
+                uploadDate: new Date().toISOString()
+            };
+
+            if (!memories[trip.id]) {
+                memories[trip.id] = [];
+            }
+
+            memories[trip.id].push(memory);
+            localStorage.setItem('memories', JSON.stringify(memories));
+
+            processed++;
+            if (processed === files.length) {
+                renderMemoriesGallery();
+                alert(`✅ ${files.length} file(s) uploaded successfully!`);
+            }
+        };
+
+        reader.readAsDataURL(file);
+    });
+
+    input.value = '';
+}
+
+function renderMemoriesGallery() {
+    const trip = getCurrentTrip();
+    const gallery = document.getElementById('memoriesGallery');
+    if (!gallery) return;
+
+    if (!trip || !memories[trip.id] || memories[trip.id].length === 0) {
+        gallery.innerHTML = '<p style="color: #64748b; font-style: italic; grid-column: 1 / -1;">No memories uploaded yet. Start uploading your photos and files!</p>';
+        return;
+    }
+
+    gallery.innerHTML = '';
+    memories[trip.id].forEach(memory => {
+        const card = document.createElement('div');
+        card.style.cssText = 'background: white; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); position: relative;';
+        
+        const isImage = memory.type && memory.type.startsWith('image/');
+        
+        card.innerHTML = `
+            ${isImage ? `<img src="${memory.dataUrl}" style="width: 100%; height: 150px; object-fit: cover;">` : `<div style="width: 100%; height: 150px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; color: white; font-size: 48px;">📄</div>`}
+            <div style="padding: 12px;">
+                <div style="font-size: 13px; font-weight: 600; color: #1e293b; margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${memory.name}">${memory.name}</div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
+                    <button onclick="downloadMemory(${memory.id})" style="background: #3b82f6; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 12px;">Download</button>
+                    <button onclick="deleteMemory(${memory.id})" style="background: #ef4444; color: white; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 12px;">Delete</button>
+                </div>
+            </div>
+        `;
+        
+        gallery.appendChild(card);
+    });
+}
+
+function downloadMemory(memoryId) {
+    const trip = getCurrentTrip();
+    if (!trip) return;
+
+    const memory = memories[trip.id].find(m => m.id === memoryId);
+    if (!memory) return;
+
+    const link = document.createElement('a');
+    link.href = memory.dataUrl;
+    link.download = memory.name;
+    link.click();
+}
+
+function deleteMemory(memoryId) {
+    const trip = getCurrentTrip();
+    if (!trip) return;
+
+    if (confirm('Are you sure you want to delete this memory?')) {
+        memories[trip.id] = memories[trip.id].filter(m => m.id !== memoryId);
+        localStorage.setItem('memories', JSON.stringify(memories));
+        renderMemoriesGallery();
     }
 }
 
