@@ -25,8 +25,106 @@
 <body>
     <div class="app-container">
         <div class="app-header">
-            <h1>🌍 Trip & Conference Manager</h1>
-            <p>Organize your travels, track conference schedules, and never miss an important event</p>
+            <div class="header-content">
+                <div>
+                    <h1>Trip & Conference Manager</h1>
+                    <p>Professional travel organization and conference planning platform</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Page Container with Sidebar -->
+        <div class="page-container">
+            <!-- Trips Panel (Vertical) -->
+            <div class="trips-panel">
+                <h3>My Trips</h3>
+                <div id="tripsList" class="trips-panel-list"></div>
+                <div class="trips-panel-actions">
+                    <button class="btn btn-primary" onclick="showNewTripModal()">+ New Trip</button>
+                    <button class="btn btn-secondary" onclick="loadSampleTrip()">📋 Sample</button>
+                </div>
+            </div>
+
+            <!-- Main Content Area -->
+            <div class="content-area">
+
+                <!-- Professional Navigation Cards -->
+                <div class="nav-container">
+                    <div class="nav-section">
+                        <h3 class="nav-section-title">Main Features</h3>
+                        <div class="nav-grid">
+                            <div class="nav-card" onclick="switchTab('flights')">
+                                <div class="nav-icon">✈️</div>
+                                <h4>Flights</h4>
+                                <p>Manage flight bookings</p>
+                            </div>
+                            <div class="nav-card" onclick="switchTab('hotels')">
+                                <div class="nav-icon">🏨</div>
+                                <h4>Hotels</h4>
+                                <p>Accommodation details</p>
+                            </div>
+                            <div class="nav-card" onclick="switchTab('itinerary')">
+                                <div class="nav-icon">📅</div>
+                                <h4>Itinerary</h4>
+                                <p>Daily schedule</p>
+                            </div>
+                            <div class="nav-card" onclick="switchTab('conference')">
+                                <div class="nav-icon">🎫</div>
+                                <h4>Events</h4>
+                                <p>Conference sessions</p>
+                            </div>
+                            <div class="nav-card" onclick="switchTab('presentations')">
+                                <div class="nav-icon">🎤</div>
+                                <h4>Presentations</h4>
+                                <p>Your speaking slots</p>
+                            </div>
+                            <div class="nav-card" onclick="switchTab('map')">
+                                <div class="nav-icon">🗺️</div>
+                                <h4>Explore</h4>
+                                <p>Map & locations</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="nav-section">
+                        <h3 class="nav-section-title">Planning & Management</h3>
+                        <div class="nav-grid nav-grid-compact">
+                            <div class="nav-card nav-card-sm" onclick="switchTab('packing')">
+                                <div class="nav-icon-sm">🎒</div>
+                                <h5>Packing</h5>
+                            </div>
+                            <div class="nav-card nav-card-sm" onclick="switchTab('receipts')">
+                                <div class="nav-icon-sm">🧾</div>
+                                <h5>Receipts</h5>
+                            </div>
+                            <div class="nav-card nav-card-sm" onclick="switchTab('documents')">
+                                <div class="nav-icon-sm">📄</div>
+                                <h5>Documents</h5>
+                            </div>
+                            <div class="nav-card nav-card-sm" onclick="switchTab('checklist')">
+                                <div class="nav-icon-sm">✅</div>
+                                <h5>Checklist</h5>
+                            </div>
+                            <div class="nav-card nav-card-sm" onclick="switchTab('weather')">
+                                <div class="nav-icon-sm">☀️</div>
+                                <h5>Weather</h5>
+                            </div>
+                            <div class="nav-card nav-card-sm" onclick="switchTab('memories')">
+                                <div class="nav-icon-sm">📸</div>
+                                <h5>Memories</h5>
+                            </div>
+                            <div class="nav-card nav-card-sm" onclick="switchTab('conferenceProgram')">
+                                <div class="nav-icon-sm">📋</div>
+                                <h5>Program</h5>
+                            </div>
+                            <div class="nav-card nav-card-sm" onclick="switchTab('archived')">
+                                <div class="nav-icon-sm">📦</div>
+                                <h5>Archived</h5>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
 
     <!-- Issues Modal -->
@@ -59,98 +157,55 @@
         </div>
     </div>
 
-        <!-- Main Travel Categories -->
-        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 16px; margin: 20px 20px 15px 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
-            <div style="display: flex; justify-content: space-around; align-items: center; flex-wrap: wrap; gap: 20px;">
-                <div onclick="switchTab('flights')" style="text-align: center; color: white; cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
-                    <div style="font-size: 48px; margin-bottom: 8px;">✈️</div>
-                    <div style="font-size: 14px; font-weight: 500; opacity: 0.9;">Flights</div>
-                </div>
-                <div onclick="switchTab('hotels')" style="text-align: center; color: white; cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
-                    <div style="font-size: 48px; margin-bottom: 8px;">🏨</div>
-                    <div style="font-size: 14px; font-weight: 500; opacity: 0.9;">Hotels</div>
-                </div>
-                <div onclick="switchTab('map')" style="text-align: center; color: white; cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
-                    <div style="font-size: 48px; margin-bottom: 8px;">🗺️</div>
-                    <div style="font-size: 14px; font-weight: 500; opacity: 0.9;">Explore</div>
-                </div>
-                <div onclick="switchTab('weather')" style="text-align: center; color: white; cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
-                    <div style="font-size: 48px; margin-bottom: 8px;">☀️</div>
-                    <div style="font-size: 14px; font-weight: 500; opacity: 0.9;">Weather</div>
-                </div>
-                <div onclick="switchTab('itinerary')" style="text-align: center; color: white; cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
-                    <div style="font-size: 48px; margin-bottom: 8px;">📅</div>
-                    <div style="font-size: 14px; font-weight: 500; opacity: 0.9;">Itinerary</div>
-                </div>
-                <div onclick="switchTab('presentations')" style="text-align: center; color: white; cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
-                    <div style="font-size: 48px; margin-bottom: 8px;">🎤</div>
-                    <div style="font-size: 14px; font-weight: 500; opacity: 0.9;">Presentations</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Sub-Categories -->
-        <div style="background: linear-gradient(135deg, #94a3b8 0%, #64748b 100%); padding: 20px; border-radius: 12px; margin: 0px 20px 30px 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
-            <div style="display: flex; justify-content: space-around; align-items: center; flex-wrap: wrap; gap: 15px;">
-                <div onclick="switchTab('packing')" style="text-align: center; color: white; cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
-                    <div style="font-size: 36px; margin-bottom: 6px;">🎒</div>
-                    <div style="font-size: 13px; font-weight: 500; opacity: 0.9;">Packing</div>
-                </div>
-                <div onclick="switchTab('conference')" style="text-align: center; color: white; cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
-                    <div style="font-size: 36px; margin-bottom: 6px;">🎫</div>
-                    <div style="font-size: 13px; font-weight: 500; opacity: 0.9;">Events</div>
-                </div>
-                <div onclick="switchTab('receipts')" style="text-align: center; color: white; cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
-                    <div style="font-size: 36px; margin-bottom: 6px;">🧾</div>
-                    <div style="font-size: 13px; font-weight: 500; opacity: 0.9;">Receipts</div>
-                </div>
-                <div onclick="switchTab('conferenceProgram')" style="text-align: center; color: white; cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
-                    <div style="font-size: 36px; margin-bottom: 6px;">📋</div>
-                    <div style="font-size: 13px; font-weight: 500; opacity: 0.9;">Conference</div>
-                </div>
-                <div onclick="switchTab('documents')" style="text-align: center; color: white; cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
-                    <div style="font-size: 36px; margin-bottom: 6px;">📄</div>
-                    <div style="font-size: 13px; font-weight: 500; opacity: 0.9;">Documents</div>
-                </div>
-                <div onclick="switchTab('checklist')" style="text-align: center; color: white; cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
-                    <div style="font-size: 36px; margin-bottom: 6px;">✅</div>
-                    <div style="font-size: 13px; font-weight: 500; opacity: 0.9;">Checklist</div>
-                </div>
-                <div onclick="switchTab('memories')" style="text-align: center; color: white; cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
-                    <div style="font-size: 36px; margin-bottom: 6px;">📸</div>
-                    <div style="font-size: 13px; font-weight: 500; opacity: 0.9;">Memories</div>
-                </div>
-                <div onclick="switchTab('archived')" style="text-align: center; color: white; cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
-                    <div style="font-size: 36px; margin-bottom: 6px;">📦</div>
-                    <div style="font-size: 13px; font-weight: 500; opacity: 0.9;">Archived</div>
-                </div>
-            </div>
-        </div>
-
-        <div class="trips-bar">
-            <h3>My Trips</h3>
-            <div id="tripsList" class="trips-bar-list"></div>
-            <div class="trips-bar-actions">
-                <button class="btn btn-primary" onclick="showNewTripModal()">+ New Trip</button>
-                <button class="btn btn-secondary" onclick="loadSampleTrip()">📋 Load Sample Trip</button>
-            </div>
-        </div>
-
         <div class="main-layout">
-            <div class="sidebar">
-
-                <div class="trips-list" style="margin-top: 20px;">
-                    <h3>Upcoming Trips</h3>
-                    <div id="upcomingTripsList"></div>
+            <!-- Quick Access Panel (shown only in content view) -->
+            <div class="side-nav">
+                <button class="btn-dashboard" onclick="returnToDashboard()">
+                    <span>🏠</span> Dashboard
+                </button>
+                
+                <div class="side-nav-divider"></div>
+                
+                <div class="side-nav-header">Quick Access</div>
+                <div class="side-nav-item" onclick="switchTab('itinerary')" title="Itinerary">
+                    <span class="side-nav-icon">📅</span>
+                    <span class="side-nav-label">Itinerary</span>
                 </div>
-
-                <div class="search-box">
-                    <span class="search-icon">🔍</span>
-                    <input type="text" id="searchEvents" placeholder="Search events..." onkeyup="searchEvents()">
+                <div class="side-nav-item" onclick="switchTab('flights')" title="Flights">
+                    <span class="side-nav-icon">✈️</span>
+                    <span class="side-nav-label">Flights</span>
                 </div>
-
-                <div id="quickStats" class="stats-grid" style="grid-template-columns: 1fr;">
-                    <!-- Quick stats will appear here -->
+                <div class="side-nav-item" onclick="switchTab('hotels')" title="Hotels">
+                    <span class="side-nav-icon">🏨</span>
+                    <span class="side-nav-label">Hotels</span>
+                </div>
+                <div class="side-nav-item" onclick="switchTab('conference')" title="Events">
+                    <span class="side-nav-icon">🎫</span>
+                    <span class="side-nav-label">Events</span>
+                </div>
+                <div class="side-nav-item" onclick="switchTab('presentations')" title="Presentations">
+                    <span class="side-nav-icon">🎤</span>
+                    <span class="side-nav-label">Presentations</span>
+                </div>
+                <div class="side-nav-item" onclick="switchTab('packing')" title="Packing">
+                    <span class="side-nav-icon">🎒</span>
+                    <span class="side-nav-label">Packing</span>
+                </div>
+                <div class="side-nav-item" onclick="switchTab('receipts')" title="Receipts">
+                    <span class="side-nav-icon">🧾</span>
+                    <span class="side-nav-label">Receipts</span>
+                </div>
+                <div class="side-nav-item" onclick="switchTab('documents')" title="Documents">
+                    <span class="side-nav-icon">📄</span>
+                    <span class="side-nav-label">Documents</span>
+                </div>
+                <div class="side-nav-item" onclick="switchTab('map')" title="Map">
+                    <span class="side-nav-icon">🗺️</span>
+                    <span class="side-nav-label">Map</span>
+                </div>
+                <div class="side-nav-item" onclick="switchTab('weather')" title="Weather">
+                    <span class="side-nav-icon">☀️</span>
+                    <span class="side-nav-label">Weather</span>
                 </div>
             </div>
 

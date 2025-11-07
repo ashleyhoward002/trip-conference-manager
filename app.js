@@ -679,77 +679,80 @@ function printItinerary() {
 // Trip Management
 function loadTrips() {
     const tripsList = document.getElementById('tripsList');
-    const upcomingList = document.getElementById('upcomingTripsList');
     const archivedContent = document.getElementById('archivedTripsContent');
     
     if (tripsList) tripsList.innerHTML = '';
-    if (upcomingList) upcomingList.innerHTML = '';
 
-    const active = trips.filter(t => !t.archived).sort((a, b) => new Date(b.startDate) - new Date(a.startDate));
+    const active = trips.filter(t => !t.archived).sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
     const archived = trips.filter(t => t.archived);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
-    // Show only the most recent trip in "My Trips"
-    if (active.length > 0) {
-        const mostRecent = active[0];
-        const tripItem = document.createElement('div');
-        tripItem.className = `trip-item ${mostRecent.id === currentTripId ? 'active' : ''}`;
-        tripItem.onclick = () => selectTrip(mostRecent.id);
-        const dates = `${formatDate(new Date(mostRecent.startDate))} - ${formatDate(new Date(mostRecent.endDate))}`;
-        tripItem.innerHTML = `
-            <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
-                <div>
-                    <div style="font-weight: 600;">${mostRecent.name}</div>
-                    <div class="trip-dates">${mostRecent.destination}</div>
-                    <div class="trip-dates">${dates}</div>
-                </div>
-                <div style="display:flex; gap:4px;">
-                    <button class="btn btn-secondary" style="padding:4px 8px; font-size:0.85em;" onclick="event.stopPropagation(); editTrip('${mostRecent.id}')">✏️ Edit</button>
-                    <button class="btn btn-secondary" style="padding:4px 8px;" onclick="event.stopPropagation(); archiveTrip('${mostRecent.id}')">Archive</button>
-                </div>
-            </div>
-        `;
-        tripsList.appendChild(tripItem);
-    }
-
-    // Show upcoming trips in sidebar (all active except most recent)
-    if (upcomingList) {
-        const upcoming = active.slice(1); // All except first (most recent)
-        if (upcoming.length === 0) {
-            upcomingList.innerHTML = '<p style="color:#64748b; padding:10px;">No upcoming trips</p>';
-        } else {
-            upcoming.forEach(trip => {
-                const tripItem = document.createElement('div');
-                tripItem.className = `trip-item ${trip.id === currentTripId ? 'active' : ''}`;
-                tripItem.onclick = () => selectTrip(trip.id);
-                const dates = `${formatDate(new Date(trip.startDate))} - ${formatDate(new Date(trip.endDate))}`;
-                tripItem.innerHTML = `
-                    <div>
-                        <div style="font-weight: 600; font-size: 0.9em;">${trip.name}</div>
-                        <div style="font-size: 0.8em; color: #64748b;">${trip.destination}</div>
-                        <div style="font-size: 0.75em; color: #94a3b8;">${trip.startDate}</div>
+    // Show all active trips with status indicators
+    if (active.length === 0) {
+        tripsList.innerHTML = '<div class="no-trips-message">No active trips. Click "+ New Trip" to get started.</div>';
+    } else {
+        active.forEach(trip => {
+            const startDate = new Date(trip.startDate);
+            const endDate = new Date(trip.endDate);
+            startDate.setHours(0, 0, 0, 0);
+            endDate.setHours(0, 0, 0, 0);
+            
+            // Determine trip status
+            let status = '';
+            let statusClass = '';
+            if (today >= startDate && today <= endDate) {
+                status = 'Active';
+                statusClass = 'status-active';
+            } else if (today < startDate) {
+                const daysUntil = Math.ceil((startDate - today) / (1000 * 60 * 60 * 24));
+                status = daysUntil === 0 ? 'Today' : daysUntil === 1 ? 'Tomorrow' : `In ${daysUntil} days`;
+                statusClass = 'status-upcoming';
+            } else {
+                status = 'Past';
+                statusClass = 'status-past';
+            }
+            
+            const tripItem = document.createElement('div');
+            tripItem.className = `trip-item ${trip.id === currentTripId ? 'active' : ''}`;
+            tripItem.onclick = () => selectTrip(trip.id);
+            
+            const dates = `${formatDate(startDate)} - ${formatDate(endDate)}`;
+            
+            tripItem.innerHTML = `
+                <div class="trip-item-content">
+                    <div class="trip-item-header">
+                        <div class="trip-item-title">${trip.name}</div>
+                        <div class="trip-status ${statusClass}">${status}</div>
                     </div>
-                `;
-                upcomingList.appendChild(tripItem);
-            });
-        }
+                    <div class="trip-item-destination">📍 ${trip.destination}</div>
+                    <div class="trip-item-dates">🗓️ ${dates}</div>
+                    <div class="trip-item-actions">
+                        <button class="trip-action-btn" onclick="event.stopPropagation(); editTrip('${trip.id}')" title="Edit trip">✏️</button>
+                        <button class="trip-action-btn" onclick="event.stopPropagation(); archiveTrip('${trip.id}')" title="Archive trip">📦</button>
+                    </div>
+                </div>
+            `;
+            tripsList.appendChild(tripItem);
+        });
     }
 
     // Update archived trips content in the tab
     if (archivedContent) {
         if (archived.length === 0) {
-            archivedContent.innerHTML = '<p style="color: #64748b; font-style: italic;">No archived trips yet.</p>';
+            archivedContent.innerHTML = '<p class="no-trips-message">No archived trips yet.</p>';
         } else {
             archivedContent.innerHTML = '';
             archived.forEach(trip => {
                 const tripCard = document.createElement('div');
-                tripCard.style.cssText = 'background: white; border: 1px solid var(--border); border-radius: 8px; padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);';
+                tripCard.className = 'archived-trip-card';
                 const dates = `${formatDate(new Date(trip.startDate))} - ${formatDate(new Date(trip.endDate))}`;
                 tripCard.innerHTML = `
-                    <div style="display:flex; justify-content:space-between; align-items:center; gap:12px;">
-                        <div style="flex: 1;">
-                            <div style="font-weight: 600; font-size: 18px; margin-bottom: 4px;">${trip.name}</div>
-                            <div style="color: #64748b; margin-bottom: 2px;">📍 ${trip.destination}</div>
-                            <div style="color: #94a3b8; font-size: 0.9em;">🗓️ ${dates}</div>
+                    <div class="archived-trip-content">
+                        <div class="archived-trip-info">
+                            <div class="archived-trip-title">${trip.name}</div>
+                            <div class="archived-trip-destination">📍 ${trip.destination}</div>
+                            <div class="archived-trip-dates">🗓️ ${dates}</div>
                         </div>
                         <button class="btn btn-primary" onclick="unarchiveTrip('${trip.id}')">Restore</button>
                     </div>
@@ -1331,6 +1334,22 @@ function migrateBudgetToReceiptsIfNeeded(tripId) {
     }
 }
 
+// Return to Dashboard
+function returnToDashboard() {
+    const pageContainer = document.querySelector('.page-container');
+    const mainLayout = document.querySelector('.main-layout');
+    
+    if (pageContainer) pageContainer.style.display = 'grid';
+    if (mainLayout) mainLayout.style.display = 'none';
+    
+    // Clear all side nav active states
+    document.querySelectorAll('.side-nav-item').forEach(item => {
+        item.classList.remove('active');
+    });
+    
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
 // Tab Switching
 function switchTab(tabName) {
     // Hide all tab contents
@@ -1343,11 +1362,33 @@ function switchTab(tabName) {
         tab.classList.remove('active');
     });
     
+    // Remove active class from all side nav items
+    document.querySelectorAll('.side-nav-item').forEach(item => {
+        item.classList.remove('active');
+    });
+    
     // Show selected tab
     document.getElementById(tabName + 'Tab').classList.add('active');
     
-    // Set active tab button
-    event.target.classList.add('active');
+    // Set active tab button if event exists
+    if (event && event.target) {
+        event.target.classList.add('active');
+        // If clicked from side nav, find and activate the item
+        const sideNavItem = event.target.closest('.side-nav-item');
+        if (sideNavItem) {
+            sideNavItem.classList.add('active');
+        }
+    }
+    
+    // Hide page container and show content view
+    const pageContainer = document.querySelector('.page-container');
+    const mainLayout = document.querySelector('.main-layout');
+    
+    if (pageContainer) pageContainer.style.display = 'none';
+    if (mainLayout) mainLayout.style.display = 'grid';
+    
+    // Scroll to top
+    window.scrollTo({ top: 0, behavior: 'smooth' });
 
     // Initialize map when opening the Map tab
     if (tabName === 'map') {
